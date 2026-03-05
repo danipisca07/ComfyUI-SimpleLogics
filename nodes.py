@@ -321,6 +321,112 @@ class MathClampFloat:
         return (max(min_val, min(max_val, value)),)
 
 
+# --- Number Conversion ---
+
+class IntToNumber:
+    DESCRIPTION = "Converts an integer to a NUMBER (generic numeric type)."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("INT", {"default": 0})}}
+    RETURN_TYPES = ("NUMBER",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (float(value),)
+
+
+class FloatToNumber:
+    DESCRIPTION = "Converts a float to a NUMBER (generic numeric type)."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("FLOAT", {"default": 0.0})}}
+    RETURN_TYPES = ("NUMBER",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (float(value),)
+
+
+class NumberToInt:
+    DESCRIPTION = "Converts a NUMBER to an integer by truncating the decimal part."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("NUMBER", {"default": 0.0})}}
+    RETURN_TYPES = ("INT",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (int(value),)
+
+
+class NumberToFloat:
+    DESCRIPTION = "Converts a NUMBER to a float."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("NUMBER", {"default": 0.0})}}
+    RETURN_TYPES = ("FLOAT",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (float(value),)
+
+
+class StringToNumber:
+    DESCRIPTION = "Parses a string into a NUMBER."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("STRING", {"default": "0"})}}
+    RETURN_TYPES = ("NUMBER",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (float(value),)
+
+
+class NumberToString:
+    DESCRIPTION = "Converts a NUMBER to its string representation."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("NUMBER", {"default": 0.0})}}
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (str(value),)
+
+
+class BoolToNumber:
+    DESCRIPTION = "Converts a boolean to a NUMBER: True → 1.0, False → 0.0."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("BOOLEAN", {"default": False})}}
+    RETURN_TYPES = ("NUMBER",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (1.0 if value else 0.0,)
+
+
+class NumberToBool:
+    DESCRIPTION = "Converts a NUMBER to a boolean: 0 → False, any other value → True."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"value": ("NUMBER", {"default": 0.0})}}
+    RETURN_TYPES = ("BOOLEAN",)
+    FUNCTION = "convert"
+    CATEGORY = "SimpleLogics/Convert"
+
+    def convert(self, value):
+        return (value != 0,)
+
+
 # --- Switch Nodes ---
 
 class SwitchInt:
@@ -411,6 +517,15 @@ NODE_CLASS_MAPPINGS = {
     "SL_StringToFloat": StringToFloat,
     "SL_BoolToInt": BoolToInt,
     "SL_IntToBool": IntToBool,
+    # Number
+    "SL_IntToNumber": IntToNumber,
+    "SL_FloatToNumber": FloatToNumber,
+    "SL_NumberToInt": NumberToInt,
+    "SL_NumberToFloat": NumberToFloat,
+    "SL_StringToNumber": StringToNumber,
+    "SL_NumberToString": NumberToString,
+    "SL_BoolToNumber": BoolToNumber,
+    "SL_NumberToBool": NumberToBool,
     # Logic
     "SL_AND": LogicAND,
     "SL_OR": LogicOR,
@@ -445,6 +560,15 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SL_StringToFloat": "String → Float",
     "SL_BoolToInt": "Bool → Int",
     "SL_IntToBool": "Int → Bool",
+    # Number
+    "SL_IntToNumber": "Int → Number",
+    "SL_FloatToNumber": "Float → Number",
+    "SL_NumberToInt": "Number → Int",
+    "SL_NumberToFloat": "Number → Float",
+    "SL_StringToNumber": "String → Number",
+    "SL_NumberToString": "Number → String",
+    "SL_BoolToNumber": "Bool → Number",
+    "SL_NumberToBool": "Number → Bool",
     # Logic
     "SL_AND": "AND",
     "SL_OR": "OR",
