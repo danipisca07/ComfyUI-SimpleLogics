@@ -1,12 +1,13 @@
 import json
+import math
 from typing import Union, List, Dict, Any
 
 
 class GeoCalibToFSpy:
     """
     Converts GeoCalib camera calibration output to fSpy JSON format.
-    Takes camera calibration data (intrinsics and extrinsics) and converts it
-    to the fSpy JSON format for use with Blender's fSpy importer.
+    Takes camera calibration data from the GeoCalib Estimator node outputs
+    and converts it to the fSpy JSON format for use with Blender's fSpy importer.
     """
 
     CATEGORY = "GeoCalib"
@@ -18,7 +19,14 @@ class GeoCalibToFSpy:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "geocalib_data": ("DICT",),
+                "image_width": ("INT", {"default": 1920, "min": 1, "max": 65536}),
+                "image_height": ("INT", {"default": 1080, "min": 1, "max": 65536}),
+                "focal_length_px": ("FLOAT", {"default": 1500.0, "min": 0.1}),
+                "principal_point_x": ("FLOAT", {"default": 960.0, "min": -10000.0, "max": 10000.0}),
+                "principal_point_y": ("FLOAT", {"default": 540.0, "min": -10000.0, "max": 10000.0}),
+                "roll": ("FLOAT", {"default": 0.0, "min": -180.0, "max": 180.0}),
+                "pitch": ("FLOAT", {"default": 0.0, "min": -180.0, "max": 180.0}),
+                "yaw": ("FLOAT", {"default": 0.0, "min": -180.0, "max": 180.0}),
             },
             "optional": {
                 "sensor_width_mm": ("FLOAT", {"default": 36.0, "min": 0.1, "max": 100.0, "step": 0.1}),
@@ -26,45 +34,57 @@ class GeoCalibToFSpy:
             }
         }
 
-    def convert_to_fspy(self, geocalib_data: Dict[str, Any], sensor_width_mm: float = 36.0, transform_orientation: str = "Y_UP") -> tuple:
+    def convert_to_fspy(
+        self,
+        image_width: int,
+        image_height: int,
+        focal_length_px: float,
+        principal_point_x: float,
+        principal_point_y: float,
+        roll: float,
+        pitch: float,
+        yaw: float,
+        sensor_width_mm: float = 36.0,
+        transform_orientation: str = "Y_UP",
+    ) -> tuple:
         """
-        Convert GeoCalib camera calibration to fSpy JSON format.
+        Convert GeoCalib camera calibration parameters to fSpy JSON format.
 
         Args:
-            geocalib_data: Dictionary containing GeoCalib output with keys:
-                - width: image width in pixels
-                - height: image height in pixels
-                - fx: focal length in pixels (x-axis)
-                - fy: focal length in pixels (y-axis) [optional, uses fx if not present]
-                - cx: principal point x in pixels
-                - cy: principal point y in pixels
-                - R: 3x3 rotation matrix (list of lists or flat list of 9 values)
+            image_width: Image width in pixels
+            image_height: Image height in pixels
+            focal_length_px: Focal length in pixels
+            principal_point_x: Principal point X coordinate in pixels
+            principal_point_y: Principal point Y coordinate in pixels
+            roll: Camera roll rotation in degrees (Z-axis)
+            pitch: Camera pitch rotation in degrees (X-axis)
+            yaw: Camera yaw rotation in degrees (Y-axis)
             sensor_width_mm: Sensor width in millimeters (default: 36.0)
             transform_orientation: Coordinate system orientation (default: "Y_UP")
 
         Returns:
             Tuple containing the fSpy JSON string.
-
-        Raises:
-            KeyError: If required keys are missing from geocalib_data.
-            ValueError: If data types or shapes are invalid.
         """
-        # Extract required fields
         try:
-            image_width = int(geocalib_data["width"])
-            image_height = int(geocalib_data["height"])
-            fx = float(geocalib_data["fx"])
-            fy = float(geocalib_data.get("fy", fx))  # Use fx if fy not provided
-            cx = float(geocalib_data["cx"])
-            cy = float(geocalib_data["cy"])
-            R = geocalib_data["R"]
-        except KeyError as e:
-            raise KeyError(f"Missing required key in geocalib_data: {e}")
+            image_width = int(image_width)
+            image_height = int(image_height)
+            fx = float(focal_length_px)
+            cx = float(principal_point_x)
+            cy = float(principal_point_y)
+            roll_deg = float(roll)
+            pitch_deg = float(pitch)
+            yaw_deg = float(yaw)
         except (ValueError, TypeError) as e:
-            raise ValueError(f"Invalid data type in geocalib_data: {e}")
+            raise ValueError(f"Invalid input data types: {e}")
 
-        # Parse rotation matrix (handle both nested list and flat list formats)
-        rotation_matrix = self._parse_rotation_matrix(R)
+        # Convert rotation angles from degrees to radians
+        roll_rad = math.radians(roll_deg)
+        pitch_rad = math.radians(pitch_deg)
+        yaw_rad = math.radians(yaw_deg)
+
+        # Build rotation matrix from Euler angles (ZXY order: roll, pitch, yaw)
+        # This corresponds to rotations around Z, X, Y axes respectively
+        rotation_matrix = self._euler_to_rotation_matrix(roll_rad, pitch_rad, yaw_rad)
 
         # Compute focal length in millimeters
         # f_mm = f_px * sensor_width_mm / image_width_px
@@ -96,42 +116,36 @@ class GeoCalibToFSpy:
         return (fspy_json,)
 
     @staticmethod
-    def _parse_rotation_matrix(R: Union[List[List[float]], List[float]]) -> List[List[float]]:
+    def _euler_to_rotation_matrix(roll: float, pitch: float, yaw: float) -> List[List[float]]:
         """
-        Parse rotation matrix from either nested list or flat list format.
+        Convert Euler angles (roll, pitch, yaw) to a 3x3 rotation matrix.
+        Uses ZXY rotation order (roll around Z, pitch around X, yaw around Y).
 
         Args:
-            R: Rotation matrix as either:
-                - Nested list: [[r11, r12, r13], [r21, r22, r23], [r31, r32, r33]]
-                - Flat list: [r11, r12, r13, r21, r22, r23, r31, r32, r33]
+            roll: Rotation around Z-axis in radians
+            pitch: Rotation around X-axis in radians
+            yaw: Rotation around Y-axis in radians
 
         Returns:
-            Rotation matrix as nested list of lists.
-
-        Raises:
-            ValueError: If matrix shape or size is invalid.
+            3x3 rotation matrix as nested list of lists.
         """
-        try:
-            # Check if it's a nested list (list of lists)
-            if isinstance(R, list) and len(R) == 3 and all(isinstance(row, list) for row in R):
-                # Verify each row has 3 elements
-                if all(len(row) == 3 for row in R):
-                    # Convert all values to float
-                    return [[float(val) for val in row] for row in R]
+        # Precompute sin and cos values
+        cr = math.cos(roll)
+        sr = math.sin(roll)
+        cp = math.cos(pitch)
+        sp = math.sin(pitch)
+        cy = math.cos(yaw)
+        sy = math.sin(yaw)
 
-            # Check if it's a flat list of 9 elements
-            if isinstance(R, list) and len(R) == 9:
-                R_float = [float(val) for val in R]
-                # Reshape to 3x3 (row-major)
-                return [
-                    [R_float[0], R_float[1], R_float[2]],
-                    [R_float[3], R_float[4], R_float[5]],
-                    [R_float[6], R_float[7], R_float[8]],
-                ]
+        # Rotation matrix from ZXY Euler angles
+        # R = Rz(roll) * Rx(pitch) * Ry(yaw)
+        R = [
+            [cy * cr - sy * sp * sr, -sy * cp, cy * sr + sy * sp * cr],
+            [sy * cr + cy * sp * sr, cy * cp, sy * sr - cy * sp * cr],
+            [-cp * sr, sp, cp * cr],
+        ]
 
-            raise ValueError(f"Rotation matrix must be 3x3 nested list or flat list of 9 values, got: {R}")
-        except (TypeError, ValueError) as e:
-            raise ValueError(f"Failed to parse rotation matrix: {e}")
+        return R
 
 
 # ComfyUI node registration
