@@ -505,6 +505,34 @@ class SwitchAny:
         return (if_true if condition else if_false,)
 
 
+# --- Null Check ---
+
+class IsNotNullText:
+    DESCRIPTION = "Returns True if the input string is not null, False otherwise."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"text": ("STRING", {"default": ""})}}
+    RETURN_TYPES = ("BOOLEAN",)
+    FUNCTION = "check"
+    CATEGORY = "SimpleLogics/Logic"
+
+    def check(self, text):
+        return (text is not None,)
+
+
+class IsNotNullImage:
+    DESCRIPTION = "Returns True if the input image is not null, False otherwise."
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"image": ("IMAGE",)}}
+    RETURN_TYPES = ("BOOLEAN",)
+    FUNCTION = "check"
+    CATEGORY = "SimpleLogics/Logic"
+
+    def check(self, image):
+        return (image is not None,)
+
+
 # --- Mappings ---
 
 NODE_CLASS_MAPPINGS = {
@@ -548,6 +576,9 @@ NODE_CLASS_MAPPINGS = {
     "SL_SwitchFloat": SwitchFloat,
     "SL_SwitchString": SwitchString,
     "SL_SwitchAny": SwitchAny,
+    # Null Check
+    "SL_IsNotNullText": IsNotNullText,
+    "SL_IsNotNullImage": IsNotNullImage,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -591,4 +622,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SL_SwitchFloat": "Switch Float",
     "SL_SwitchString": "Switch String",
     "SL_SwitchAny": "Switch Any",
+    # Null Check
+    "SL_IsNotNullText": "Is Not Null (Text)",
+    "SL_IsNotNullImage": "Is Not Null (Image)",
 }
